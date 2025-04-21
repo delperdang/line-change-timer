@@ -1,0 +1,183 @@
+/* Paste all CSS rules from Stylesheet.html here */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;700&display=swap');
+
+:root {
+  --background-color: #1F1F1F; /* Very dark grey */
+  --surface-color: #2E2E2E;    /* Slightly lighter grey for elements */
+  --primary-text-color: #E0E0E0; /* Light grey for main text */
+  --secondary-text-color: #BDBDBD; /* Dimmer grey for less important text */
+  --accent-color: #8AB4F8;      /* Google Blue accent */
+  --active-border-color: var(--accent-color);
+  --active-bg-color: #3A3F4B; /* Slightly blue-tinted dark background */
+  --button-primary-bg: var(--accent-color);
+  --button-primary-text: #202124; /* Dark text on light blue button */
+  --button-warn-bg: #F9AB00;   /* Dark theme friendly Yellow/Orange */
+  --button-warn-text: #202124;
+  --button-danger-bg: #F28B82; /* Dark theme friendly Red */
+  --button-danger-text: #202124;
+  --disabled-bg-color: rgba(224, 224, 224, 0.12); /* Low opacity light grey */
+  --disabled-text-color: rgba(224, 224, 224, 0.38);
+  --shadow-dp1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  --shadow-dp2: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+  --shadow-dp4: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+  --shadow-dp8: 0 19px 38px rgba(0,0,0,0.30), 0 15px 12px rgba(0,0,0,0.22);
+}
+
+/* Apply styles to the host component if needed, or keep body styles global in src/styles.css */
+:host {
+  display: block; /* Ensure component takes up space */
+  font-family: 'Roboto', sans-serif;
+  padding: 20px;
+  background-color: var(--background-color);
+  color: var(--primary-text-color);
+  min-height: 100vh; /* Ensure background covers viewport */
+  line-height: 1.6;
+}
+
+h1 {
+  text-align: center;
+  color: var(--primary-text-color);
+  font-weight: 500;
+  margin-bottom: 30px;
+}
+
+.controls {
+  margin-bottom: 40px;
+  display: flex;            /* Use flexbox */
+  justify-content: center;  /* Center buttons horizontally */
+  flex-wrap: wrap;          /* Allow buttons to wrap */
+  gap: 12px;                /* Spacing between buttons (horizontally & vertically) */
+  padding: 0 10px;          /* Prevent touching screen edge on small screens */
+}
+
+.controls button {
+  padding: 10px 24px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.089em;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--button-primary-bg); /* Default to primary, will be overridden */
+  color: var(--button-primary-text);
+  box-shadow: var(--shadow-dp2);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease-out;
+  outline: none;
+  flex-shrink: 0; /* Prevent buttons from shrinking weirdly in flex row */
+}
+
+.controls button:hover:not(:disabled) {
+  box-shadow: var(--shadow-dp4);
+}
+
+.controls button:active:not(:disabled) {
+  box-shadow: var(--shadow-dp1); /* Subtle shadow change */
+  transform: scale(0.97);       /* Add scale transform for clear feedback */
+}
+
+.controls button:disabled {
+  background-color: var(--disabled-bg-color);
+  color: var(--disabled-text-color);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none; /* Ensure no transform on disabled */
+}
+
+/* Specific button styling using :nth-child might be fragile if order changes. Consider specific classes or IDs if needed. */
+.controls button:nth-child(1) { /* Start */
+  background-color: var(--button-primary-bg);
+  color: var(--button-primary-text);
+}
+
+.controls button:nth-child(1):hover:not(:disabled) {
+  background-color: #A8C7FA; /* Lighter blue on hover */
+}
+
+.controls button:nth-child(2) { /* Pause */
+  background-color: var(--button-warn-bg);
+  color: var(--button-warn-text);
+}
+
+.controls button:nth-child(2):hover:not(:disabled) {
+  background-color: #FBC02D; /* Lighter yellow on hover */
+}
+
+.controls button:nth-child(3) { /* Reset */
+  background-color: var(--button-danger-bg);
+  color: var(--button-danger-text);
+}
+
+.controls button:nth-child(3):hover:not(:disabled) {
+  background-color: #F4A7A1; /* Lighter red on hover */
+}
+
+
+.player-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+}
+
+.player-circle {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background-color: var(--surface-color);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-dp2);
+  text-align: center;
+}
+
+.player-circle:hover {
+  box-shadow: var(--shadow-dp4);
+}
+
+.player-circle.active {
+  border-color: var(--active-border-color);
+  background-color: var(--active-bg-color);
+  box-shadow: var(--shadow-dp4);
+}
+
+.player-circle.active:hover {
+  box-shadow: var(--shadow-dp8);
+}
+
+.player-name {
+  font-weight: 500;
+  font-size: 1rem;
+  color: var(--primary-text-color);
+  margin-bottom: 8px;
+  padding: 0 8px;
+  z-index: 1;
+  word-break: break-word; /* Allow long names to wrap */
+}
+
+.timer {
+  font-family: 'Roboto Mono', 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+  color: var(--secondary-text-color);
+  line-height: 1.3;
+  z-index: 1;
+}
+
+.current-timer {
+  font-weight: 700;
+  font-size: 1.2em;
+  color: var(--accent-color);
+  margin-bottom: 4px;
+}
+
+.total-timer {
+  font-size: 0.8em;
+  color: var(--secondary-text-color);
+}
