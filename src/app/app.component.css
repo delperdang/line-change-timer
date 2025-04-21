@@ -158,3 +158,67 @@ h1 {
   font-size: 0.8em;
   color: var(--secondary-text-color);
 }
+
+.player-setup {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: var(--surface-color); /* Use theme surface color */
+  border-radius: 8px;
+  box-shadow: var(--shadow-dp2);
+}
+
+.player-setup h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: var(--primary-text-color);
+}
+
+.player-setup p {
+  margin-bottom: 15px;
+  color: var(--secondary-text-color);
+  font-size: 0.9em;
+}
+
+.player-setup input[type="text"] {
+  padding: 10px 15px;
+  width: 80%;
+  max-width: 400px; /* Limit max width */
+  margin-bottom: 15px;
+  border: 1px solid var(--primary-text-color); /* Use theme colors */
+  border-radius: 4px;
+  background-color: var(--background-color); /* Match background */
+  color: var(--primary-text-color); /* Use theme text color */
+  font-size: 1rem;
+}
+
+.player-setup button {
+  padding: 10px 24px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.089em;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--button-primary-bg);
+  color: var(--button-primary-text);
+  box-shadow: var(--shadow-dp2);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  display: block; /* Make button block level */
+  margin: 0 auto; /* Center the button */
+}
+
+.player-setup button:hover {
+  background-color: #A8C7FA; /* Lighter accent on hover */
+  box-shadow: var(--shadow-dp4);
+}
+
+/* Style for the change players button */
+.controls button:last-child { /* Assuming Change Players is last */
+   background-color: var(--button-warn-bg); /* Use warn color */
+   color: var(--button-warn-text);
+}
+.controls button:last-child:hover:not(:disabled) {
+   background-color: #FBC02D; /* Lighter warn on hover */
+}

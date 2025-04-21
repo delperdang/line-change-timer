@@ -1,24 +1,33 @@
 <h1>{{ title }}</h1>
 
-<div class="controls">
-  <button (click)="startGame()" [disabled]="isGameRunning">Start Game</button>
-  <button (click)="pauseGame()" [disabled]="!isGameRunning">Pause Game</button>
-  <button (click)="resetGame()">Reset Game</button>
+<div class="player-setup" *ngIf="!playersLoaded">
+  <h2>Set Player Names</h2>
+  <p>Enter player names separated by commas (e.g., Alice, Bob, Charlie)</p>
+  <input type="text" [(ngModel)]="playerNamesInput" placeholder="Enter names here..." />
+  <button (click)="loadPlayersFromInput()">Load Players</button>
 </div>
 
-<div class="player-container">
-  <div class="player-circle"
-       *ngFor="let player of players; trackBy: trackById"
-       [class.active]="player.isActive"
-       (click)="togglePlayer(player)">
+<div *ngIf="playersLoaded">
+  <div class="controls">
+    <button (click)="startGame()" [disabled]="isGameRunning">Start Game</button>
+    <button (click)="pauseGame()" [disabled]="!isGameRunning">Pause Game</button>
+    <button (click)="resetGame()">Reset Game</button>
+    <button (click)="clearPlayers()">Change Players</button>
+  </div>
 
-    <div class="player-name">{{ player.name }}</div>
+  <div class="player-container">
+    <div class="player-circle"
+         *ngFor="let player of players; trackBy: trackById"
+         [class.active]="player.isActive"
+         (click)="togglePlayer(player)">
 
-    <div class="timer current-timer">
-      {{ player.currentSessionDisplayTime$ | async | formatTimePipe }}
-    </div>
-    <div class="timer total-timer">
-      ({{ player.totalGameDisplayTime$ | async | formatTimePipe }})
+      <div class="player-name">{{ player.name }}</div>
+      <div class="timer current-timer">
+        {{ player.currentSessionDisplayTime$ | async | formatTimePipe }}
+      </div>
+      <div class="timer total-timer">
+        ({{ player.totalGameDisplayTime$ | async | formatTimePipe }})
+      </div>
     </div>
   </div>
 </div>

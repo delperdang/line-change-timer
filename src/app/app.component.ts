@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { interval, Subscription, Observable } from 'rxjs';
+import { FormsModule } from '@angular/forms';
+import { interval, Subscription, Observable, BehaviorSubject } from 'rxjs'; // Use BehaviorSubject for display time
 import { map, startWith } from 'rxjs/operators';
 import { FormatTimePipe } from './format-time.pipe';
 
@@ -9,18 +10,18 @@ interface Player {
   name: string;
   isActive: boolean;
   currentSessionStartTime: number | null;
-  totalGameTime: number; // Total time in milliseconds
-  // For display, we'll use observables now
-  currentSessionDisplayTime$: Observable<number>;
-  totalGameDisplayTime$: Observable<number>;
+  totalGameTime: number;
+  currentSessionDisplayTime$: BehaviorSubject<number>;
+  totalGameDisplayTime$: BehaviorSubject<number>;
 }
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [
-    CommonModule, // <-- For async pipe, ngFor
-    FormatTimePipe
+    CommonModule,
+    FormatTimePipe,
+    FormsModule
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
@@ -29,108 +30,143 @@ export class AppComponent implements OnInit, OnDestroy {
   title = 'Line Change Timer';
   players: Player[] = [];
   isGameRunning = false;
+  playersLoaded = false; // Track if players are set
+  playerNamesInput: string = ''; // Bound to the input field
 
-  private globalTimerSubscription: Subscription | null = null;
-  // Define player names directly here - modify as needed
-  private playerNames: string[] = ["Player1", "Player2", "Player3", "Wayne", "Mario", "Sidney", "Alex", "Connor"];
+  private timerIntervalSubscription: Subscription | null = null;
+  private readonly localStorageKey = 'lineChangePlayerNames'; // Key for local storage
 
   ngOnInit(): void {
-    this.initializePlayers();
+    // Try loading names from local storage on init
+    const savedNames = localStorage.getItem(this.localStorageKey);
+    if (savedNames) {
+      this.playerNamesInput = savedNames; // Pre-fill input for potential editing
+      this.processPlayerNames(savedNames); // Load players
+    }
+    // Start the interval timer that updates display values
+    this.startDisplayUpdateTimer();
   }
 
   ngOnDestroy(): void {
-    // this.stopGlobalTimer(); // Ensure timer stops when component is destroyed
+    this.stopDisplayUpdateTimer();
   }
 
-  trackById(index: number, player: Player): number {
-    return player.id;
+  startDisplayUpdateTimer(): void {
+      if (this.timerIntervalSubscription) return; // Already running
+      // Update display roughly 10 times/sec if game is running
+      this.timerIntervalSubscription = interval(100).subscribe(() => {
+          if (!this.isGameRunning) return;
+          const now = Date.now();
+          this.players.forEach(player => {
+              let currentSessionElapsed = 0;
+              if (player.isActive && player.currentSessionStartTime !== null) {
+                  currentSessionElapsed = now - player.currentSessionStartTime;
+              }
+              // Emit new values to the BehaviorSubjects
+              player.currentSessionDisplayTime$.next(currentSessionElapsed);
+              player.totalGameDisplayTime$.next(player.totalGameTime + currentSessionElapsed);
+          });
+      });
   }
 
-  initializePlayers(): void {
-    this.players = this.playerNames.map((name, index) => {
+  stopDisplayUpdateTimer(): void {
+      this.timerIntervalSubscription?.unsubscribe();
+      this.timerIntervalSubscription = null;
+  }
+
+
+  loadPlayersFromInput(): void {
+    this.processPlayerNames(this.playerNamesInput);
+  }
+
+  processPlayerNames(namesString: string): void {
+    const namesArray = namesString.split(',')
+                                  .map(name => name.trim())
+                                  .filter(name => name.length > 0);
+
+    if (namesArray.length > 0) {
+      // Save the valid processed string back to local storage
+      localStorage.setItem(this.localStorageKey, namesArray.join(','));
+      this.initializePlayers(namesArray); // Use the names from input/storage
+      this.playersLoaded = true;
+    } else {
+      // Handle case where input is empty or invalid
+      alert("Please enter at least one valid player name.");
+      this.playersLoaded = false;
+    }
+  }
+
+  // Modified to accept names array
+  initializePlayers(names: string[]): void {
+    this.resetGameInternal(); // Reset state before loading new players
+    this.players = names.map((name, index) => {
+      // Use BehaviorSubject for easier updates
+      const currentSessionDisplayTime$ = new BehaviorSubject<number>(0);
+      const totalGameDisplayTime$ = new BehaviorSubject<number>(0);
+
       const player: Player = {
         id: index,
         name: name,
         isActive: false,
         currentSessionStartTime: null,
         totalGameTime: 0,
-        // Initialize observables for display time
-        currentSessionDisplayTime$: new Observable<number>(subscriber => {
-          subscriber.next(0); // Initial value
-        }),
-        totalGameDisplayTime$: new Observable<number>(subscriber => {
-          subscriber.next(0); // Initial value
-        }),
+        currentSessionDisplayTime$,
+        totalGameDisplayTime$
       };
-      // Set up the display observables
-      this.updatePlayerObservables(player);
       return player;
     });
   }
 
-  updatePlayerObservables(player: Player): void {
-    player.currentSessionDisplayTime$ = new Observable<number>(subscriber => {
-      const update = () => {
-        if (player.isActive && this.isGameRunning && player.currentSessionStartTime !== null) {
-          subscriber.next(Date.now() - player.currentSessionStartTime);
-        } else {
-          // If not active or game not running, session time is 0 unless it was just stopped
-           if (!player.isActive && !this.isGameRunning && player.currentSessionStartTime === null) {
-             // Show 0 if paused/reset AND player is inactive
-             subscriber.next(0);
-           } else if (player.isActive && !this.isGameRunning && player.currentSessionStartTime !== null) {
-             // If game is paused but player still marked active (e.g., pause clicked), show the time at pause
-             subscriber.next(Date.now() - player.currentSessionStartTime);
-           } else {
-             // Otherwise show 0
-             subscriber.next(0);
-           }
-        }
-      };
-
-      let intervalId: any;
-      if (this.isGameRunning && player.isActive) {
-           // Only run interval if necessary
-           intervalId = setInterval(update, 100); // Update ~10 times/sec
-           update(); // Initial update
-      } else {
-          update(); // Update once to show 0 or paused time
+   clearPlayers(): void {
+      if (confirm('Are you sure you want to clear the current players and timers? This cannot be undone.')) {
+           this.resetGameInternal(); // Stop timers, reset counts
+           this.players = []; // Clear player array
+           this.playersLoaded = false; // Go back to input screen
+           localStorage.removeItem(this.localStorageKey); // Clear saved names
+           this.playerNamesInput = ''; // Clear the input field
       }
+   }
 
+  // Renamed internal reset logic
+  private resetGameInternal(): void {
+    this.isGameRunning = false;
+    // No need to update BehaviorSubjects here, initializePlayers creates new ones
 
-      // Cleanup function
-      return () => {
-        if (intervalId) {
-          clearInterval(intervalId);
+    this.players.forEach(player => {
+        // Ensure any lingering time calc is done (though pause should handle it)
+        if (player.isActive && player.currentSessionStartTime !== null) {
+             const elapsed = Date.now() - player.currentSessionStartTime;
+             player.totalGameTime += elapsed;
         }
-      };
-    }).pipe(startWith(0)); // Ensure it emits 0 immediately
+        player.isActive = false;
+        player.currentSessionStartTime = null;
+        player.totalGameTime = 0;
+        // Reset display subjects
+        player.currentSessionDisplayTime$?.next(0);
+        player.totalGameDisplayTime$?.next(0);
+    });
+  }
 
-    player.totalGameDisplayTime$ = new Observable<number>(subscriber => {
-       const update = () => {
-           let currentSessionElapsed = 0;
-           if (player.isActive && this.isGameRunning && player.currentSessionStartTime !== null) {
-               currentSessionElapsed = Date.now() - player.currentSessionStartTime;
-           }
-           subscriber.next(player.totalGameTime + currentSessionElapsed);
+  // Public reset function called by button, keeps players
+  resetGame(): void {
+       if (confirm('Reset all timers for the current players?')) {
+            const now = Date.now();
+            // Update totals before resetting
+             this.players.forEach(player => {
+                if (player.isActive && player.currentSessionStartTime !== null) {
+                    const elapsed = now - player.currentSessionStartTime;
+                    player.totalGameTime += elapsed;
+                }
+                player.isActive = false; // Deactivate everyone
+                player.currentSessionStartTime = null;
+                player.totalGameTime = 0;
+                // Reset display subjects
+                 player.currentSessionDisplayTime$.next(0);
+                 player.totalGameDisplayTime$.next(0);
+            });
+           this.isGameRunning = false; // Ensure game stops
        }
-
-       let intervalId: any;
-       if (this.isGameRunning && player.isActive) {
-          intervalId = setInterval(update, 100);
-          update(); // Initial update
-       } else {
-          update(); // Update once
-       }
-
-        // Cleanup
-        return () => {
-          if (intervalId) {
-             clearInterval(intervalId);
-          }
-        };
-    }).pipe(startWith(player.totalGameTime)); // Start with the current total
-}
+  }
 
 
   startGame(): void {
@@ -142,12 +178,13 @@ export class AppComponent implements OnInit, OnDestroy {
       if (player.isActive) {
         if (player.currentSessionStartTime === null) {
           player.currentSessionStartTime = now;
+          // Reset current session display time on start/resume
+          player.currentSessionDisplayTime$.next(0);
         }
       }
-      // Re-setup observables to potentially start intervals
-      this.updatePlayerObservables(player);
+       // Ensure total time display starts correctly if player was already active
+       player.totalGameDisplayTime$.next(player.totalGameTime + (player.isActive ? 0 : 0));
     });
-    // No need for a separate global timer with this Observable approach
   }
 
   pauseGame(): void {
@@ -159,28 +196,15 @@ export class AppComponent implements OnInit, OnDestroy {
       if (player.isActive && player.currentSessionStartTime !== null) {
         const elapsed = now - player.currentSessionStartTime;
         player.totalGameTime += elapsed;
-        player.currentSessionStartTime = null; // Mark session as ended time-wise
+        // Update total display immediately on pause
+         player.totalGameDisplayTime$.next(player.totalGameTime);
+         // Current session is over for timing purposes
+         player.currentSessionDisplayTime$.next(0); // Reset session display
       }
-       // Re-setup observables to stop intervals and update display
-       this.updatePlayerObservables(player);
+       player.currentSessionStartTime = null; // Clear start time regardless of active state on pause
     });
   }
 
-  resetGame(): void {
-     // Ensure game is paused state first to correctly calculate final times
-    if (this.isGameRunning) {
-      this.pauseGame();
-    }
-    this.isGameRunning = false; // Explicitly set to false again
-
-    this.players.forEach(player => {
-      player.isActive = false;
-      player.currentSessionStartTime = null;
-      player.totalGameTime = 0;
-      // Re-setup observables to reset display
-      this.updatePlayerObservables(player);
-    });
-  }
 
   togglePlayer(player: Player): void {
     const wasActive = player.isActive;
@@ -192,48 +216,30 @@ export class AppComponent implements OnInit, OnDestroy {
         if (player.currentSessionStartTime !== null) {
           const elapsed = now - player.currentSessionStartTime;
           player.totalGameTime += elapsed;
+          player.totalGameDisplayTime$.next(player.totalGameTime); // Update total display
         }
         player.currentSessionStartTime = null;
+        player.currentSessionDisplayTime$.next(0); // Reset session display
       } else if (!wasActive && player.isActive) { // Activating while running
         player.currentSessionStartTime = now;
+        player.currentSessionDisplayTime$.next(0); // Start session display from 0
       }
     } else {
        // If game is not running, toggling active state doesn't start timer
-       // But if we deactivate, clear any potential start time from before pause
        if (wasActive && !player.isActive) {
-          player.currentSessionStartTime = null;
+          player.currentSessionStartTime = null; // Ensure start time is cleared if deactivated while paused
+           player.currentSessionDisplayTime$.next(0); // Reset session display
        }
-    }
-
-    // Re-setup observables to reflect the new state and potentially start/stop intervals
-    this.updatePlayerObservables(player);
-  }
-
-  // Utility to format time (moved from controller to component method)
-  formatTime(milliseconds: number | null): string {
-    if (milliseconds === null || milliseconds < 0) milliseconds = 0;
-
-    let totalSeconds = Math.floor(milliseconds / 1000);
-    let hours = Math.floor(totalSeconds / 3600);
-    let minutes = Math.floor((totalSeconds % 3600) / 60);
-    let seconds = totalSeconds % 60;
-
-    let formattedMinutes = String(minutes).padStart(2, '0');
-    let formattedSeconds = String(seconds).padStart(2, '0');
-
-    if (hours > 0) {
-      let formattedHours = String(hours).padStart(2, '0');
-      return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
-    } else {
-      return `${formattedMinutes}:${formattedSeconds}`;
+       // Ensure total time is displayed correctly even when paused
+       player.totalGameDisplayTime$.next(player.totalGameTime);
     }
   }
 
-  // --- No need for global timer methods with RxJS per-player observable approach ---
-  // stopGlobalTimer(): void {
-  //   if (this.globalTimerSubscription) {
-  //     this.globalTimerSubscription.unsubscribe();
-  //     this.globalTimerSubscription = null;
-  //   }
-  // }
+
+  // --- Utility Functions ---
+  trackById(index: number, player: Player): number {
+    return player.id;
+  }
+
+
 }
