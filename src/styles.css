@@ -1,19 +1,18 @@
-/* You can add global styles to this file, and also import other style files */
 :root {
-    --background-color: #1F1F1F; /* Very dark grey */
-    --surface-color: #2E2E2E;    /* Slightly lighter grey for elements */
-    --primary-text-color: #E0E0E0; /* Light grey for main text */
-    --secondary-text-color: #BDBDBD; /* Dimmer grey for less important text */
-    --accent-color: #8AB4F8;      /* Google Blue accent */
+    --background-color: #1F1F1F;
+    --surface-color: #2E2E2E;
+    --primary-text-color: #E0E0E0;
+    --secondary-text-color: #BDBDBD;
+    --accent-color: #8AB4F8;
     --active-border-color: var(--accent-color);
-    --active-bg-color: #3A3F4B; /* Slightly blue-tinted dark background */
+    --active-bg-color: #3A3F4B;
     --button-primary-bg: var(--accent-color);
-    --button-primary-text: #202124; /* Dark text on light blue button */
-    --button-warn-bg: #F9AB00;   /* Dark theme friendly Yellow/Orange */
+    --button-primary-text: #202124;
+    --button-warn-bg: #F9AB00;
     --button-warn-text: #202124;
-    --button-danger-bg: #F28B82; /* Dark theme friendly Red */
+    --button-danger-bg: #F28B82;
     --button-danger-text: #202124;
-    --disabled-bg-color: rgba(224, 224, 224, 0.12); /* Low opacity light grey */
+    --disabled-bg-color: rgba(224, 224, 224, 0.12);
     --disabled-text-color: rgba(224, 224, 224, 0.38);
     --shadow-dp1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
     --shadow-dp2: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
@@ -22,13 +21,13 @@
 }
 
 html {
-    background-color: var(--background-color); /* Match body background */
+    background-color: var(--background-color);
 }
 
 body {
     font-family: 'Roboto', sans-serif;
     background-color: var(--background-color);
     color: var(--primary-text-color);
-    margin: 0; /* <-- VERY IMPORTANT! Ensure this is here */
+    margin: 0;
     line-height: 1.6;
 }

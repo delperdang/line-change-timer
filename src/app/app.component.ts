@@ -37,13 +37,11 @@ export class AppComponent implements OnInit, OnDestroy {
   private readonly localStorageKey = 'lineChangePlayerNames'; // Key for local storage
 
   ngOnInit(): void {
-    // Try loading names from local storage on init
     const savedNames = localStorage.getItem(this.localStorageKey);
     if (savedNames) {
       this.playerNamesInput = savedNames; // Pre-fill input for potential editing
       this.processPlayerNames(savedNames); // Load players
     }
-    // Start the interval timer that updates display values
     this.startDisplayUpdateTimer();
   }
 
@@ -53,7 +51,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
   startDisplayUpdateTimer(): void {
       if (this.timerIntervalSubscription) return; // Already running
-      // Update display roughly 10 times/sec if game is running
       this.timerIntervalSubscription = interval(100).subscribe(() => {
           if (!this.isGameRunning) return;
           const now = Date.now();
@@ -62,7 +59,6 @@ export class AppComponent implements OnInit, OnDestroy {
               if (player.isActive && player.currentSessionStartTime !== null) {
                   currentSessionElapsed = now - player.currentSessionStartTime;
               }
-              // Emit new values to the BehaviorSubjects
               player.currentSessionDisplayTime$.next(currentSessionElapsed);
               player.totalGameDisplayTime$.next(player.totalGameTime + currentSessionElapsed);
           });
@@ -85,22 +81,18 @@ export class AppComponent implements OnInit, OnDestroy {
                                   .filter(name => name.length > 0);
 
     if (namesArray.length > 0) {
-      // Save the valid processed string back to local storage
       localStorage.setItem(this.localStorageKey, namesArray.join(','));
       this.initializePlayers(namesArray); // Use the names from input/storage
       this.playersLoaded = true;
     } else {
-      // Handle case where input is empty or invalid
       alert("Please enter at least one valid player name.");
       this.playersLoaded = false;
     }
   }
 
-  // Modified to accept names array
   initializePlayers(names: string[]): void {
     this.resetGameInternal(); // Reset state before loading new players
     this.players = names.map((name, index) => {
-      // Use BehaviorSubject for easier updates
       const currentSessionDisplayTime$ = new BehaviorSubject<number>(0);
       const totalGameDisplayTime$ = new BehaviorSubject<number>(0);
 
@@ -127,13 +119,10 @@ export class AppComponent implements OnInit, OnDestroy {
       }
    }
 
-  // Renamed internal reset logic
   private resetGameInternal(): void {
     this.isGameRunning = false;
-    // No need to update BehaviorSubjects here, initializePlayers creates new ones
 
     this.players.forEach(player => {
-        // Ensure any lingering time calc is done (though pause should handle it)
         if (player.isActive && player.currentSessionStartTime !== null) {
              const elapsed = Date.now() - player.currentSessionStartTime;
              player.totalGameTime += elapsed;
@@ -141,17 +130,14 @@ export class AppComponent implements OnInit, OnDestroy {
         player.isActive = false;
         player.currentSessionStartTime = null;
         player.totalGameTime = 0;
-        // Reset display subjects
         player.currentSessionDisplayTime$?.next(0);
         player.totalGameDisplayTime$?.next(0);
     });
   }
 
-  // Public reset function called by button, keeps players
   resetGame(): void {
        if (confirm('Reset all timers for the current players?')) {
             const now = Date.now();
-            // Update totals before resetting
              this.players.forEach(player => {
                 if (player.isActive && player.currentSessionStartTime !== null) {
                     const elapsed = now - player.currentSessionStartTime;
@@ -160,7 +146,6 @@ export class AppComponent implements OnInit, OnDestroy {
                 player.isActive = false; // Deactivate everyone
                 player.currentSessionStartTime = null;
                 player.totalGameTime = 0;
-                // Reset display subjects
                  player.currentSessionDisplayTime$.next(0);
                  player.totalGameDisplayTime$.next(0);
             });
@@ -178,11 +163,9 @@ export class AppComponent implements OnInit, OnDestroy {
       if (player.isActive) {
         if (player.currentSessionStartTime === null) {
           player.currentSessionStartTime = now;
-          // Reset current session display time on start/resume
           player.currentSessionDisplayTime$.next(0);
         }
       }
-       // Ensure total time display starts correctly if player was already active
        player.totalGameDisplayTime$.next(player.totalGameTime + (player.isActive ? 0 : 0));
     });
   }
@@ -196,9 +179,7 @@ export class AppComponent implements OnInit, OnDestroy {
       if (player.isActive && player.currentSessionStartTime !== null) {
         const elapsed = now - player.currentSessionStartTime;
         player.totalGameTime += elapsed;
-        // Update total display immediately on pause
          player.totalGameDisplayTime$.next(player.totalGameTime);
-         // Current session is over for timing purposes
          player.currentSessionDisplayTime$.next(0); // Reset session display
       }
        player.currentSessionStartTime = null; // Clear start time regardless of active state on pause
@@ -225,18 +206,15 @@ export class AppComponent implements OnInit, OnDestroy {
         player.currentSessionDisplayTime$.next(0); // Start session display from 0
       }
     } else {
-       // If game is not running, toggling active state doesn't start timer
        if (wasActive && !player.isActive) {
           player.currentSessionStartTime = null; // Ensure start time is cleared if deactivated while paused
            player.currentSessionDisplayTime$.next(0); // Reset session display
        }
-       // Ensure total time is displayed correctly even when paused
        player.totalGameDisplayTime$.next(player.totalGameTime);
     }
   }
 
 
-  // --- Utility Functions ---
   trackById(index: number, player: Player): number {
     return player.id;
   }
