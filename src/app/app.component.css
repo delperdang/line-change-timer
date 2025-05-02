@@ -210,10 +210,10 @@ h1 {
 }
 
 .controls button:last-child {
-   background-color: var(--button-warn-bg);
-   color: var(--button-warn-text);
+  background-color: var(--button-utility-bg);
+  color: var(--button-primary-text);
 }
 
 .controls button:last-child:hover:not(:disabled) {
-   background-color: #FBC02D;
+  background-color: var(--button-utility-hover-bg);
 }

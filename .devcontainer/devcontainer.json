@@ -1,8 +1,7 @@
 {
 	"name": "Node.js & Angular",
 	"image": "mcr.microsoft.com/devcontainers/javascript-node:latest",
-	"postCreateCommand": "sudo npm install -g @angular/cli; git config --global user.email 'steve.delperdang@gmail.com'; git config --global user.name 'delperdang'; git config --global init.defaultBranch main; sudo npm install gh-pages --save-dev",
-	"runArgs": ["--env-file", ".devcontainer/dev.env"],
+	"postCreateCommand": "sudo npm install -g @angular/cli; git config --global user.email 'steve.delperdang@gmail.com'; git config --global user.name 'delperdang'; git config --global init.defaultBranch main",
 	"customizations": {
 		"vscode": {
 			"extensions": [

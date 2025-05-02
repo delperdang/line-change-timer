@@ -12,6 +12,8 @@
     --button-warn-text: #202124;
     --button-danger-bg: #F28B82;
     --button-danger-text: #202124;
+    --button-utility-bg: #4DB6AC;
+    --button-utility-hover-bg: #80CBC4;
     --disabled-bg-color: rgba(224, 224, 224, 0.12);
     --disabled-text-color: rgba(224, 224, 224, 0.38);
     --shadow-dp1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
