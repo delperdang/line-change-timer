@@ -17,7 +17,7 @@
 
   <div class="player-container">
     <div class="player-circle"
-         *ngFor="let player of players; trackBy: trackById"
+         *ngFor="let player of sortedPlayers; trackBy: trackById"
          [class.active]="player.isActive"
          (click)="togglePlayer(player)">
 
