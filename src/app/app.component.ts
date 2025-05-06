@@ -42,8 +42,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private playerTimerIntervalSubscription: Subscription | null = null;
   private gameTimerSubscription: Subscription | null = null;
-  private gameStartTime: number | null = null;
-  private gamePauseTime: number | null = null;
 
   private readonly localStorageKey = 'lineChangePlayerNames';
 
@@ -74,21 +72,14 @@ export class AppComponent implements OnInit, OnDestroy {
     if (this.gameTimerSubscription) return;
     console.log('Starting game timer');
     this.isGameTimerRunning = true;
-    const initialOffset = this.gamePauseTime ? Date.now() - this.gamePauseTime : 0;
-    this.gameStartTime = Date.now() - this.gameTimeElapsed - initialOffset;
-    this.gamePauseTime = null;
-
     this.gameTimerSubscription = interval(1000)
-      .pipe(
-        map(() => {
-          if (this.gameStartTime === null) return 0;
-          return Date.now() - this.gameStartTime;
-        }),
-        takeWhile(() => this.isGameTimerRunning)
-      )
-      .subscribe(elapsed => {
-        this.gameTimeElapsed = elapsed;
-        this.cdr.detectChanges();
+      .subscribe(() => {
+        if (this.isGameTimerRunning) {
+             this.gameTimeElapsed += 1000;
+             this.cdr.detectChanges();
+        } else {
+             this.stopGameTimer();
+        }
       });
   }
 
@@ -96,22 +87,20 @@ export class AppComponent implements OnInit, OnDestroy {
     if (!this.isGameTimerRunning) return;
     console.log('Pausing game timer');
     this.stopGameTimer();
-    this.gamePauseTime = Date.now();
+    this.cdr.detectChanges();
   }
 
   stopGameTimer(): void {
-      console.log('Stopping game timer');
-      this.isGameTimerRunning = false;
-      this.gameTimerSubscription?.unsubscribe();
-      this.gameTimerSubscription = null;
+    console.log('Stopping game timer');
+    this.isGameTimerRunning = false;
+    this.gameTimerSubscription?.unsubscribe();
+    this.gameTimerSubscription = null;
   }
 
   resetGameTimer(): void {
     console.log('Resetting game timer');
     this.stopGameTimer();
     this.gameTimeElapsed = 0;
-    this.gameStartTime = null;
-    this.gamePauseTime = null;
     this.cdr.detectChanges();
   }
 
@@ -225,44 +214,35 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isGameRunning = false;
 
     this.players.forEach(player => {
-        if (player.isActive && player.currentSessionStartTime !== null) {
-             const elapsed = Date.now() - player.currentSessionStartTime;
-             player.totalGameTime += elapsed;
-        }
-        player.isActive = false;
-        player.currentSessionStartTime = null;
-        player.totalGameTime = 0;
-        player.currentSessionDisplayTime$?.next(0);
-        player.totalGameDisplayTime$?.next(0);
-        player._calculatedTotalTime = 0;
+      player.isActive = false;
+      player.currentSessionStartTime = null;
+      player.totalGameTime = 0;
+      player.currentSessionDisplayTime$?.next(0);
+      player.totalGameDisplayTime$?.next(0);
+      player._calculatedTotalTime = 0;
     });
   }
 
   resetGame(): void {
     if (confirm('Reset all timers for the current players? This will also reset the main game timer and scores.')) {
-         this.stopDisplayUpdateTimer();
-         this.resetGameTimer();
-         this.homeScore = 0;
-         this.awayScore = 0;
+        this.stopDisplayUpdateTimer();
+        this.resetGameTimer();
+        this.homeScore = 0;
+        this.awayScore = 0;
 
-         const now = Date.now();
-          this.players.forEach(player => {
-             if (player.isActive && player.currentSessionStartTime !== null) {
-                 const elapsed = now - player.currentSessionStartTime;
-                 player.totalGameTime += elapsed;
-             }
-             player.isActive = false;
-             player.currentSessionStartTime = null;
-             player.totalGameTime = 0;
-             player.currentSessionDisplayTime$.next(0);
-             player.totalGameDisplayTime$.next(0);
-             player._calculatedTotalTime = 0;
-         });
+        const now = Date.now();
+        this.players.forEach(player => {
+          player.isActive = false;
+          player.currentSessionStartTime = null;
+          player.totalGameTime = 0;
+          player.currentSessionDisplayTime$.next(0);
+          player.totalGameDisplayTime$.next(0);
+          player._calculatedTotalTime = 0;
+        });
         this.isGameRunning = false;
         this.cdr.detectChanges();
     }
   }
-
 
   startGame(): void {
     if (this.isGameRunning) return;
@@ -277,16 +257,17 @@ export class AppComponent implements OnInit, OnDestroy {
           player.currentSessionDisplayTime$.next(0);
         }
       }
-        const currentSessionElapsed = player.isActive && player.currentSessionStartTime ? now - player.currentSessionStartTime : 0;
-        player.totalGameDisplayTime$.next(player.totalGameTime + (player.isActive ? 0 : 0));
+      const currentSessionElapsed = player.isActive && player.currentSessionStartTime ? now - player.currentSessionStartTime : 0;
+      player.totalGameDisplayTime$.next(player.totalGameTime + (player.isActive ? 0 : 0));
     });
     this.startDisplayUpdateTimer();
+    this.cdr.detectChanges();
   }
 
   pauseGame(): void {
     if (!this.isGameRunning) return;
-    this.stopDisplayUpdateTimer();
     this.pauseGameTimer();
+    this.stopDisplayUpdateTimer();
     this.isGameRunning = false;
     const now = Date.now();
 
