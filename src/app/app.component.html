@@ -8,6 +8,30 @@
 </div>
 
 <div *ngIf="playersLoaded">
+  <div class="game-header">
+    <div class="score-area home-score">
+      <span class="score-label">HOME</span>
+      <div class="score-display">
+        <button class="score-control" (click)="decrementHomeScore()" aria-label="Decrease Home Score">-</button>
+        <span class="score-value">{{ homeScore }}</span>
+        <button class="score-control" (click)="incrementHomeScore()" aria-label="Increase Home Score">+</button>
+      </div>
+    </div>
+
+    <div class="game-timer">
+      {{ gameTimeElapsed | formatTimePipe }}
+    </div>
+
+    <div class="score-area away-score">
+      <span class="score-label">AWAY</span>
+       <div class="score-display">
+        <button class="score-control" (click)="decrementAwayScore()" aria-label="Decrease Away Score">-</button>
+        <span class="score-value">{{ awayScore }}</span>
+        <button class="score-control" (click)="incrementAwayScore()" aria-label="Increase Away Score">+</button>
+      </div>
+    </div>
+  </div>
+
   <div class="controls">
     <button (click)="startGame()" [disabled]="isGameRunning">Start Game</button>
     <button (click)="pauseGame()" [disabled]="!isGameRunning">Pause Game</button>

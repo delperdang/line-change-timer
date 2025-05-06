@@ -15,6 +15,79 @@ h1 {
   margin-bottom: 30px;
 }
 
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 10px 15px;
+  background-color: var(--surface-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-dp2);
+  font-family: 'Roboto Mono', 'Courier New', Courier, monospace;
+}
+
+.score-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 100px;
+}
+
+.score-label {
+  font-size: 0.8em;
+  color: var(--secondary-text-color);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.score-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.score-value {
+  font-size: 1.8em;
+  font-weight: bold;
+  color: var(--primary-text-color);
+  min-width: 30px;
+  text-align: center;
+}
+
+.game-timer {
+  font-size: 2em;
+  font-weight: bold;
+  color: var(--accent-color);
+}
+
+.score-control {
+  background: none;
+  border: 1px solid var(--secondary-text-color);
+  color: var(--secondary-text-color);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  line-height: 22px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 1.1em;
+  font-weight: bold;
+  padding: 0;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.score-control:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--primary-text-color);
+}
+
+.score-control:active {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: scale(0.95);
+}
+
 .controls {
   margin-bottom: 40px;
   display: flex;
