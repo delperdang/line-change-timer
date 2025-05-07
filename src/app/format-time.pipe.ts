@@ -10,28 +10,27 @@ export class FormatTimePipe implements PipeTransform {
       return '00:00';
     }
 
-    const MAX_DISPLAY_HOURS = 99;
-    const MAX_DISPLAY_MINUTES = 59;
-    const MAX_TOTAL_MINUTES_FOR_CAP = (MAX_DISPLAY_HOURS * 60) + MAX_DISPLAY_MINUTES;
+    const MAX_DISPLAY_MINUTES = 99;
+    const MAX_DISPLAY_SECONDS = 59;
+    const MAX_TOTAL_SECONDS_FOR_CAP = (MAX_DISPLAY_MINUTES * 60) + MAX_DISPLAY_SECONDS;
 
     const totalMillis = Math.max(0, value);
     const actualTotalSeconds = Math.floor(totalMillis / 1000);
-    const actualTotalMinutes = Math.floor(actualTotalSeconds / 60);
 
-    let displayHours: number;
-    let displayMinutesInHour: number;
+    let displayMinutes: number;
+    let displaySeconds: number;
 
-    if (actualTotalMinutes >= MAX_TOTAL_MINUTES_FOR_CAP) {
-      displayHours = MAX_DISPLAY_HOURS;
-      displayMinutesInHour = MAX_DISPLAY_MINUTES;
+    if (actualTotalSeconds >= MAX_TOTAL_SECONDS_FOR_CAP) {
+      displayMinutes = MAX_DISPLAY_MINUTES;
+      displaySeconds = MAX_DISPLAY_SECONDS;
     } else {
-      displayHours = Math.floor(actualTotalMinutes / 60);
-      displayMinutesInHour = actualTotalMinutes % 60;
+      displayMinutes = Math.floor(actualTotalSeconds / 60);
+      displaySeconds = actualTotalSeconds % 60;
     }
 
-    const hoursStr = displayHours.toString().padStart(2, '0');
-    const minutesStr = displayMinutesInHour.toString().padStart(2, '0');
+    const minutesStr = displayMinutes.toString().padStart(2, '0');
+    const secondsStr = displaySeconds.toString().padStart(2, '0');
 
-    return `${hoursStr}:${minutesStr}`;
+    return `${minutesStr}:${secondsStr}`;
   }
 }
