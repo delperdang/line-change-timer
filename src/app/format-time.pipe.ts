@@ -5,25 +5,33 @@ import { Pipe, PipeTransform } from '@angular/core';
   standalone: true
 })
 export class FormatTimePipe implements PipeTransform {
-
-  transform(milliseconds: number | null | undefined): string {
-    if (milliseconds === null || milliseconds === undefined || milliseconds < 0) {
-        milliseconds = 0;
+  transform(value: number | null | undefined): string {
+    if (value === null || value === undefined || isNaN(value) || value < 0) {
+      return '00:00';
     }
 
-    let totalSeconds = Math.floor(milliseconds / 1000);
-    let hours = Math.floor(totalSeconds / 3600);
-    let minutes = Math.floor((totalSeconds % 3600) / 60);
-    let seconds = totalSeconds % 60;
+    const MAX_DISPLAY_HOURS = 99;
+    const MAX_DISPLAY_MINUTES = 59;
+    const MAX_TOTAL_MINUTES_FOR_CAP = (MAX_DISPLAY_HOURS * 60) + MAX_DISPLAY_MINUTES;
 
-    let formattedMinutes = String(minutes).padStart(2, '0');
-    let formattedSeconds = String(seconds).padStart(2, '0');
+    const totalMillis = Math.max(0, value);
+    const actualTotalSeconds = Math.floor(totalMillis / 1000);
+    const actualTotalMinutes = Math.floor(actualTotalSeconds / 60);
 
-    if (hours > 0) {
-      let formattedHours = String(hours).padStart(2, '0');
-      return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+    let displayHours: number;
+    let displayMinutesInHour: number;
+
+    if (actualTotalMinutes >= MAX_TOTAL_MINUTES_FOR_CAP) {
+      displayHours = MAX_DISPLAY_HOURS;
+      displayMinutesInHour = MAX_DISPLAY_MINUTES;
     } else {
-      return `${formattedMinutes}:${formattedSeconds}`;
+      displayHours = Math.floor(actualTotalMinutes / 60);
+      displayMinutesInHour = actualTotalMinutes % 60;
     }
+
+    const hoursStr = displayHours.toString().padStart(2, '0');
+    const minutesStr = displayMinutesInHour.toString().padStart(2, '0');
+
+    return `${hoursStr}:${minutesStr}`;
   }
 }
