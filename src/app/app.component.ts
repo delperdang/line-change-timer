@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { interval, Subscription, BehaviorSubject } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { FormatTimePipe } from './format-time.pipe';
 
 interface Player {
@@ -43,11 +43,8 @@ export class AppComponent implements OnInit, OnDestroy {
   homeScore = 0;
   awayScore = 0;
 
-  private gameTimerStartTime: number = 0;
-  private gameTimerOffset: number = 0;
-
-  private playerTimerIntervalSubscription: Subscription | null = null;
-  private gameTimerSubscription: Subscription | null = null;
+  private animationFrameId: number | null = null;
+  private lastFrameTime: number = 0;
 
   private readonly localStorageKey = 'lineChangePlayerNames';
 
@@ -62,8 +59,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.stopDisplayUpdateTimer();
-    this.stopGameTimer();
+    this.stopGameLoop();
   }
 
   get sortedPlayers(): Player[] {
@@ -78,111 +74,12 @@ export class AppComponent implements OnInit, OnDestroy {
     return [...this.players].sort((a, b) => (b._calculatedTotalTime ?? 0) - (a._calculatedTotalTime ?? 0));
   }
 
-  startGameTimer(): void {
-    if (this.gameTimerSubscription || this.gameTimeElapsed >= MAX_TIME_MS_MMSS) return;
-    
-    this.isGameTimerRunning = true;
-    this.gameTimerStartTime = Date.now();
-
-    this.gameTimerSubscription = interval(500).subscribe(() => {
-      if (this.isGameTimerRunning) {
-        const now = Date.now();
-        const elapsed = now - this.gameTimerStartTime;
-        this.gameTimeElapsed = this.gameTimerOffset + elapsed;
-
-        if (this.gameTimeElapsed >= MAX_TIME_MS_MMSS) {
-          this.gameTimeElapsed = MAX_TIME_MS_MMSS;
-          this.stopGameTimer();
-
-          if (this.isGameRunning) {
-            this.isGameRunning = false;
-            this.stopDisplayUpdateTimer();
-
-            const capTime = Date.now();
-            this.players.forEach(player => {
-              if (player.isActive && player.currentSessionStartTime !== null) {
-                const elapsed = capTime - player.currentSessionStartTime;
-                player.totalGameTime += elapsed;
-                if (player.totalGameTime > MAX_TIME_MS_MMSS) {
-                  player.totalGameTime = MAX_TIME_MS_MMSS;
-                }
-              }
-              player.currentSessionStartTime = null;
-              player.currentSessionDisplayTime$.next(0);
-              player.totalGameDisplayTime$.next(player.totalGameTime);
-            });
-          }
-        }
-        this.cdr.detectChanges();
-      } else {
-        this.stopGameTimer();
-      }
-    });
-  }
-
-  pauseGameTimer(): void {
-    if (!this.isGameTimerRunning && !this.gameTimerSubscription) return;
-    console.log('Pausing game timer');
-    this.gameTimerOffset = this.gameTimeElapsed;
-    this.stopGameTimer();
-    this.cdr.detectChanges();
-  }
-
-  stopGameTimer(): void {
-    console.log('Stopping game timer subscription');
-    this.isGameTimerRunning = false;
-    if (this.gameTimerSubscription) {
-      this.gameTimerSubscription.unsubscribe();
-      this.gameTimerSubscription = null;
-    }
-  }
-
-  resetGameTimer(): void {
-    console.log('Resetting game timer');
-    this.stopGameTimer();
-    this.gameTimeElapsed = 0;
-    this.gameTimerOffset = 0;
-    this.cdr.detectChanges();
-  }
 
   incrementHomeScore(): void { this.homeScore++; this.cdr.detectChanges(); }
   decrementHomeScore(): void { if (this.homeScore > 0) { this.homeScore--; this.cdr.detectChanges(); } }
   incrementAwayScore(): void { this.awayScore++; this.cdr.detectChanges(); }
   decrementAwayScore(): void { if (this.awayScore > 0) { this.awayScore--; this.cdr.detectChanges(); } }
 
-  startDisplayUpdateTimer(): void {
-    if (this.playerTimerIntervalSubscription) return;
-    console.log('Starting player display update timer');
-    this.playerTimerIntervalSubscription = interval(500).subscribe(() => {
-      if (!this.isGameRunning) {
-        this.players.forEach(player => {
-          player.currentSessionDisplayTime$.next(0);
-          player.totalGameDisplayTime$.next(player.totalGameTime);
-        });
-        this.cdr.detectChanges();
-        return;
-      }
-
-      const now = Date.now();
-      this.players.forEach(player => {
-        let currentSessionElapsed = 0;
-        if (player.isActive && player.currentSessionStartTime !== null) {
-          currentSessionElapsed = now - player.currentSessionStartTime;
-        }
-        player.currentSessionDisplayTime$.next(currentSessionElapsed);
-        player.totalGameDisplayTime$.next(player.totalGameTime + currentSessionElapsed);
-      });
-      this.cdr.detectChanges();
-    });
-}
-
-  stopDisplayUpdateTimer(): void {
-    console.log('Stopping player display update timer');
-    if (this.playerTimerIntervalSubscription) {
-      this.playerTimerIntervalSubscription.unsubscribe();
-      this.playerTimerIntervalSubscription = null;
-    }
-  }
 
   loadPlayersFromInput(): void { this.processPlayerNames(this.playerNamesInput); }
 
@@ -221,8 +118,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private resetGameInternal(resetAll: boolean): void {
-    this.stopDisplayUpdateTimer();
-    this.stopGameTimer();
+    this.stopGameLoop();
 
     if (resetAll) {
       this.gameTimeElapsed = 0;
@@ -230,13 +126,19 @@ export class AppComponent implements OnInit, OnDestroy {
       this.awayScore = 0;
     }
     this.isGameRunning = false;
-    this.isGameTimerRunning = false;
 
     this.players.forEach(player => {
-      player.isActive = false; player.currentSessionStartTime = null; player.totalGameTime = 0;
-      player.currentSessionDisplayTime$?.next(0); player.totalGameDisplayTime$?.next(0);
+      player.isActive = false; 
+      player.currentSessionStartTime = null; 
+      player.totalGameTime = 0;
+      player.currentSessionDisplayTime$?.next(0); 
+      player.totalGameDisplayTime$?.next(0);
       player._calculatedTotalTime = 0;
     });
+
+    // Force a final UI update for the reset state
+    this.updatePlayerDisplay();
+    this.cdr.detectChanges();
   }
 
   resetGame(): void {
@@ -248,47 +150,34 @@ export class AppComponent implements OnInit, OnDestroy {
 
   startGame(): void {
     if (this.isGameRunning || this.gameTimeElapsed >= MAX_TIME_MS_MMSS) return;
+    
     this.isGameRunning = true;
-    this.startGameTimer();
-
     const now = Date.now();
     this.players.forEach(player => {
-      if (player.isActive) {
-        if (player.currentSessionStartTime === null) {
-            player.currentSessionStartTime = now;
-        }
-        const currentSessionElapsed = player.currentSessionStartTime ? now - player.currentSessionStartTime : 0;
-        player.currentSessionDisplayTime$.next(currentSessionElapsed);
-        player.totalGameDisplayTime$.next(player.totalGameTime + currentSessionElapsed);
-      } else {
-         player.currentSessionDisplayTime$.next(0);
-         player.totalGameDisplayTime$.next(player.totalGameTime);
+      if (player.isActive && player.currentSessionStartTime === null) {
+        player.currentSessionStartTime = now;
       }
     });
-    this.startDisplayUpdateTimer();
-    this.cdr.detectChanges();
+
+    this.startGameLoop();
   }
 
   pauseGame(): void {
     if (!this.isGameRunning) return;
 
     this.isGameRunning = false; 
-    this.pauseGameTimer();
-    this.stopDisplayUpdateTimer();
+    this.stopGameLoop();
 
     const now = Date.now();
     this.players.forEach(player => {
       if (player.isActive && player.currentSessionStartTime !== null) {
         const elapsed = now - player.currentSessionStartTime;
-        player.totalGameTime += elapsed;
-        if (player.totalGameTime > MAX_TIME_MS_MMSS) {
-          player.totalGameTime = MAX_TIME_MS_MMSS;
-        }
+        player.totalGameTime = Math.min(player.totalGameTime + elapsed, MAX_TIME_MS_MMSS);
       }
       player.currentSessionStartTime = null;
-      player.currentSessionDisplayTime$.next(0);
-      player.totalGameDisplayTime$.next(player.totalGameTime);
     });
+
+    this.updatePlayerDisplay();
     this.cdr.detectChanges();
   }
 
@@ -329,4 +218,70 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   trackById(index: number, player: Player): number { return player.id; }
+
+  private startGameLoop(): void {
+    if (this.animationFrameId) return; // Already running
+    
+    this.lastFrameTime = performance.now();
+    this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
+  }
+
+  private stopGameLoop(): void {
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+  }
+
+  private gameLoop(timestamp: number): void {
+    if (!this.isGameRunning) {
+      this.animationFrameId = null;
+      return;
+    }
+
+    const deltaTime = timestamp - this.lastFrameTime;
+    this.lastFrameTime = timestamp;
+
+    // Update main game timer
+    this.gameTimeElapsed = Math.min(this.gameTimeElapsed + deltaTime, MAX_TIME_MS_MMSS);
+
+    // Update player displays
+    this.updatePlayerDisplay();
+
+    if (this.gameTimeElapsed >= MAX_TIME_MS_MMSS) {
+      this.handleGameEnd();
+    } else {
+      this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
+    }
+
+    this.cdr.detectChanges();
+  }
+
+  private updatePlayerDisplay(): void {
+    const now = Date.now();
+    this.players.forEach(player => {
+      let currentSessionElapsed = 0;
+      if (player.isActive && player.currentSessionStartTime !== null) {
+        currentSessionElapsed = now - player.currentSessionStartTime;
+      }
+      player.currentSessionDisplayTime$.next(currentSessionElapsed);
+      player.totalGameDisplayTime$.next(Math.min(player.totalGameTime + currentSessionElapsed, MAX_TIME_MS_MMSS));
+    });
+  }
+
+  private handleGameEnd(): void {
+    this.isGameRunning = false;
+    this.stopGameLoop();
+
+    const capTime = Date.now();
+    this.players.forEach(player => {
+      if (player.isActive && player.currentSessionStartTime !== null) {
+        const elapsed = capTime - player.currentSessionStartTime;
+        player.totalGameTime = Math.min(player.totalGameTime + elapsed, MAX_TIME_MS_MMSS);
+      }
+      player.currentSessionStartTime = null;
+    });
+
+    this.updatePlayerDisplay();
+  }
 }
