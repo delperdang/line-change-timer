@@ -48,8 +48,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private readonly localStorageKey = 'lineChangePlayerNames';
 
-  constructor(private cdr: ChangeDetectorRef) {}
-  
+  constructor(private cdr: ChangeDetectorRef) { }
+
   ngOnInit(): void {
     const savedNames = localStorage.getItem(this.localStorageKey);
     if (savedNames) {
@@ -128,10 +128,10 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isGameRunning = false;
 
     this.players.forEach(player => {
-      player.isActive = false; 
-      player.currentSessionStartTime = null; 
+      player.isActive = false;
+      player.currentSessionStartTime = null;
       player.totalGameTime = 0;
-      player.currentSessionDisplayTime$?.next(0); 
+      player.currentSessionDisplayTime$?.next(0);
       player.totalGameDisplayTime$?.next(0);
       player._calculatedTotalTime = 0;
     });
@@ -149,7 +149,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   startGame(): void {
     if (this.isGameRunning || this.gameTimeElapsed >= MAX_TIME_MS_MMSS) return;
-    
+
     this.isGameRunning = true;
     const now = Date.now();
     this.players.forEach(player => {
@@ -164,7 +164,7 @@ export class AppComponent implements OnInit, OnDestroy {
   pauseGame(): void {
     if (!this.isGameRunning) return;
 
-    this.isGameRunning = false; 
+    this.isGameRunning = false;
     this.stopGameLoop();
 
     const now = Date.now();
@@ -203,16 +203,16 @@ export class AppComponent implements OnInit, OnDestroy {
     } else {
       if (!player.isActive) {
         player.currentSessionStartTime = null;
-     }
+      }
     }
 
     let currentSessionElapsedForDisplay = 0;
     if (player.isActive && player.currentSessionStartTime && this.isGameRunning) {
-        currentSessionElapsedForDisplay = now - player.currentSessionStartTime;
+      currentSessionElapsedForDisplay = now - player.currentSessionStartTime;
     }
     player.currentSessionDisplayTime$.next(currentSessionElapsedForDisplay);
     player.totalGameDisplayTime$.next(player.totalGameTime + (this.isGameRunning ? currentSessionElapsedForDisplay : 0));
-    
+
     this.cdr.detectChanges();
   }
 
@@ -220,7 +220,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private startGameLoop(): void {
     if (this.animationFrameId) return;
-    
+
     this.lastFrameTime = performance.now();
     this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
   }

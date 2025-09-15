@@ -24,7 +24,7 @@
 
     <div class="score-area away-score">
       <span class="score-label">AWAY</span>
-       <div class="score-display">
+      <div class="score-display">
         <button class="score-control" (click)="decrementAwayScore()" aria-label="Decrease Away Score">-</button>
         <span class="score-value">{{ awayScore }}</span>
         <button class="score-control" (click)="incrementAwayScore()" aria-label="Increase Away Score">+</button>
@@ -40,10 +40,8 @@
   </div>
 
   <div class="player-container">
-    <div class="player-circle"
-         *ngFor="let player of sortedPlayers; trackBy: trackById"
-         [class.active]="player.isActive"
-         (click)="togglePlayer(player)">
+    <div class="player-circle" *ngFor="let player of sortedPlayers; trackBy: trackById" [class.active]="player.isActive"
+      (click)="togglePlayer(player)">
 
       <div class="player-name">{{ player.name }}</div>
       <div class="timer current-timer">
