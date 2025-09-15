@@ -8,7 +8,6 @@ interface Player {
   id: number;
   name: string;
   isActive: boolean;
-  highlightColor: string;
   currentSessionStartTime: number | null;
   totalGameTime: number;
   currentSessionDisplayTime$: BehaviorSubject<number>;
@@ -47,30 +46,15 @@ export class AppComponent implements OnInit, OnDestroy {
   private animationFrameId: number | null = null;
   private lastFrameTime: number = 0;
 
-  isColorPickerVisible = false;
-  playerForColorChange: Player | null = null;
-  availableColors = ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6f42c1'];
-  private longPressTimer: any;
+  private readonly localStorageKey = 'lineChangePlayerNames';
 
-  private readonly localStorageKey = 'lineChangePlayers';
-
-  constructor(private cdr: ChangeDetectorRef) { }
-
+  constructor(private cdr: ChangeDetectorRef) {}
+  
   ngOnInit(): void {
-    const savedPlayers = localStorage.getItem(this.localStorageKey);
-    if (savedPlayers) {
-      try {
-        const data = JSON.parse(savedPlayers);
-        if (Array.isArray(data) && typeof data[0] === 'object') {
-          this.players = data.map(p => ({ ...p, currentSessionDisplayTime$: new BehaviorSubject(0), totalGameDisplayTime$: new BehaviorSubject(p.totalGameTime) }));
-        } else {
-          this.initializePlayers(savedPlayers.split(','));
-        }
-      } catch (e) {
-        this.initializePlayers(savedPlayers.split(','));
-      }
-      this.playersLoaded = true;
-      this.playerNamesInput = this.players.map(p => p.name).join(', ');
+    const savedNames = localStorage.getItem(this.localStorageKey);
+    if (savedNames) {
+      this.playerNamesInput = savedNames;
+      this.processPlayerNames(savedNames);
     }
   }
 
@@ -102,6 +86,7 @@ export class AppComponent implements OnInit, OnDestroy {
   processPlayerNames(namesString: string): void {
     const namesArray = namesString.split(',').map(name => name.trim()).filter(name => name.length > 0);
     if (namesArray.length > 0) {
+      localStorage.setItem(this.localStorageKey, namesArray.join(','));
       this.initializePlayers(namesArray);
       this.playersLoaded = true;
     } else {
@@ -114,16 +99,11 @@ export class AppComponent implements OnInit, OnDestroy {
   initializePlayers(names: string[]): void {
     this.resetGameInternal(true);
     this.players = names.map((name, index) => ({
-      id: index,
-      name: name,
-      isActive: false,
-      highlightColor: this.availableColors[0],
-      currentSessionStartTime: null,
+      id: index, name: name, isActive: false, currentSessionStartTime: null,
       totalGameTime: 0,
       currentSessionDisplayTime$: new BehaviorSubject<number>(0),
       totalGameDisplayTime$: new BehaviorSubject<number>(0)
     }));
-    this.savePlayers();
   }
 
   clearPlayers(): void {
@@ -148,14 +128,15 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isGameRunning = false;
 
     this.players.forEach(player => {
-      player.isActive = false;
-      player.currentSessionStartTime = null;
+      player.isActive = false; 
+      player.currentSessionStartTime = null; 
       player.totalGameTime = 0;
-      player.currentSessionDisplayTime$?.next(0);
+      player.currentSessionDisplayTime$?.next(0); 
       player.totalGameDisplayTime$?.next(0);
       player._calculatedTotalTime = 0;
     });
 
+    // Force a final UI update for the reset state
     this.updatePlayerDisplay();
     this.cdr.detectChanges();
   }
@@ -169,7 +150,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   startGame(): void {
     if (this.isGameRunning || this.gameTimeElapsed >= MAX_TIME_MS_MMSS) return;
-
+    
     this.isGameRunning = true;
     const now = Date.now();
     this.players.forEach(player => {
@@ -184,7 +165,7 @@ export class AppComponent implements OnInit, OnDestroy {
   pauseGame(): void {
     if (!this.isGameRunning) return;
 
-    this.isGameRunning = false;
+    this.isGameRunning = false; 
     this.stopGameLoop();
 
     const now = Date.now();
@@ -200,93 +181,47 @@ export class AppComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-  onPress(player: Player): void {
-    this.longPressTimer = setTimeout(() => {
-      this.openColorPicker(player);
-      this.longPressTimer = null;
-    }, 500);
-  }
-
-  cancelPress(): void {
-    if (this.longPressTimer) {
-      clearTimeout(this.longPressTimer);
-      this.longPressTimer = null;
-    }
-  }
-
-  onRelease(player: Player): void {
-    if (this.longPressTimer) {
-      clearTimeout(this.longPressTimer);
-      this.togglePlayer(player);
-    }
-  }
-
-  openColorPicker(player: Player): void {
-    this.playerForColorChange = player;
-    this.isColorPickerVisible = true;
-  }
-
-  selectColor(color: string): void {
-    if (this.playerForColorChange) {
-      this.playerForColorChange.highlightColor = color;
-      this.savePlayers();
-    }
-    this.closeColorPicker();
-  }
-
-  closeColorPicker(): void {
-    this.isColorPickerVisible = false;
-    this.playerForColorChange = null;
-  }
-
-  savePlayers(): void {
-    const playersToSave = this.players.map(p => {
-      const { currentSessionDisplayTime$, totalGameDisplayTime$, ...rest } = p;
-      return rest;
-    });
-    localStorage.setItem(this.localStorageKey, JSON.stringify(playersToSave));
-  }
-
   togglePlayer(player: Player): void {
     if (this.gameTimeElapsed >= MAX_TIME_MS_MMSS && !player.isActive) return;
 
+    const wasActive = player.isActive;
+    player.isActive = !player.isActive;
     const now = Date.now();
-    const playerIndex = this.players.findIndex(p => p.id === player.id);
-    if (playerIndex === -1) return;
-
-    const updatedPlayer = { ...this.players[playerIndex] };
-    const wasActive = updatedPlayer.isActive;
-    updatedPlayer.isActive = !updatedPlayer.isActive;
 
     if (this.isGameRunning) {
-      if (wasActive && !updatedPlayer.isActive) {
-        if (updatedPlayer.currentSessionStartTime !== null) {
-          const elapsed = now - updatedPlayer.currentSessionStartTime;
-          updatedPlayer.totalGameTime = Math.min(updatedPlayer.totalGameTime + elapsed, MAX_TIME_MS_MMSS);
-          updatedPlayer.currentSessionStartTime = null;
+      if (wasActive && !player.isActive) {
+        if (player.currentSessionStartTime !== null) {
+          const elapsed = now - player.currentSessionStartTime;
+          player.totalGameTime += elapsed;
+          if (player.totalGameTime > MAX_TIME_MS_MMSS) {
+            player.totalGameTime = MAX_TIME_MS_MMSS;
+          }
+          player.currentSessionStartTime = null;
         }
-      } else if (!wasActive && updatedPlayer.isActive) {
-        updatedPlayer.currentSessionStartTime = now;
+      } else if (!wasActive && player.isActive) {
+        player.currentSessionStartTime = now;
       }
     } else {
-      if (!updatedPlayer.isActive) {
-        updatedPlayer.currentSessionStartTime = null;
-      }
+      if (!player.isActive) {
+        player.currentSessionStartTime = null;
+     }
     }
 
-    const newPlayers = [...this.players];
-    newPlayers[playerIndex] = updatedPlayer;
-    this.players = newPlayers;
-
-    this.updatePlayerDisplay();
+    let currentSessionElapsedForDisplay = 0;
+    if (player.isActive && player.currentSessionStartTime && this.isGameRunning) {
+        currentSessionElapsedForDisplay = now - player.currentSessionStartTime;
+    }
+    player.currentSessionDisplayTime$.next(currentSessionElapsedForDisplay);
+    player.totalGameDisplayTime$.next(player.totalGameTime + (this.isGameRunning ? currentSessionElapsedForDisplay : 0));
+    
     this.cdr.detectChanges();
   }
 
   trackById(index: number, player: Player): number { return player.id; }
 
   private startGameLoop(): void {
-    if (this.animationFrameId) return;
-
+    if (this.animationFrameId) return; // Already running
+    
     this.lastFrameTime = performance.now();
     this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
   }
@@ -307,8 +242,10 @@ export class AppComponent implements OnInit, OnDestroy {
     const deltaTime = timestamp - this.lastFrameTime;
     this.lastFrameTime = timestamp;
 
+    // Update main game timer
     this.gameTimeElapsed = Math.min(this.gameTimeElapsed + deltaTime, MAX_TIME_MS_MMSS);
 
+    // Update player displays
     this.updatePlayerDisplay();
 
     if (this.gameTimeElapsed >= MAX_TIME_MS_MMSS) {
