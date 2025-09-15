@@ -32,6 +32,12 @@
     </div>
   </div>
 
+  <div class="color-palette-container">
+    <div class="color-swatch" *ngFor="let color of colorPalette" [style.backgroundColor]="color"
+      [class.selected]="color === highlightColor" (click)="selectColor(color)">
+    </div>
+  </div>
+
   <div class="controls">
     <button (click)="startGame()" [disabled]="isGameRunning">Start Game</button>
     <button (click)="pauseGame()" [disabled]="!isGameRunning">Pause Game</button>
@@ -41,7 +47,7 @@
 
   <div class="player-container">
     <div class="player-circle" *ngFor="let player of sortedPlayers; trackBy: trackById" [class.active]="player.isActive"
-      (click)="togglePlayer(player)">
+      [ngStyle]="{'border-color': player.isActive ? player.highlightColor : null}" (click)="togglePlayer(player)">
 
       <div class="player-name">{{ player.name }}</div>
       <div class="timer current-timer">

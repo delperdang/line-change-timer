@@ -8,6 +8,7 @@ interface Player {
   id: number;
   name: string;
   isActive: boolean;
+  highlightColor: string;
   currentSessionStartTime: number | null;
   totalGameTime: number;
   currentSessionDisplayTime$: BehaviorSubject<number>;
@@ -37,6 +38,8 @@ export class AppComponent implements OnInit, OnDestroy {
   isGameRunning = false;
   playersLoaded = false;
   playerNamesInput: string = '';
+  colorPalette: string[] = ['#4285f4', '#7241d8', '#fbbc05', '#34a853', '#ea4335'];
+  highlightColor: string = this.colorPalette[0];
 
   gameTimeElapsed = 0;
   isGameTimerRunning = false;
@@ -45,6 +48,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private animationFrameId: number | null = null;
   private lastFrameTime: number = 0;
+
+  selectColor(color: string): void {
+    this.highlightColor = color;
+  }
 
   private readonly localStorageKey = 'lineChangePlayerNames';
 
@@ -101,6 +108,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.players = names.map((name, index) => ({
       id: index, name: name, isActive: false, currentSessionStartTime: null,
       totalGameTime: 0,
+      highlightColor: this.highlightColor,
       currentSessionDisplayTime$: new BehaviorSubject<number>(0),
       totalGameDisplayTime$: new BehaviorSubject<number>(0)
     }));
@@ -199,6 +207,7 @@ export class AppComponent implements OnInit, OnDestroy {
         }
       } else if (!wasActive && player.isActive) {
         player.currentSessionStartTime = now;
+        player.highlightColor = this.highlightColor;
       }
     } else {
       if (!player.isActive) {

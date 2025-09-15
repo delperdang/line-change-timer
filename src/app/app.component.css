@@ -158,6 +158,34 @@ h1 {
   background-color: #F4A7A1;
 }
 
+.color-palette-container {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.color-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid var(--surface-color);
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: var(--shadow-dp2);
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+  box-shadow: var(--shadow-dp4);
+}
+
+.color-swatch.selected {
+  border-color: var(--primary-text-color);
+  box-shadow: var(--shadow-dp8);
+  transform: scale(1.15);
+}
+
 .player-container {
   display: flex;
   flex-wrap: wrap;
@@ -188,9 +216,13 @@ h1 {
 }
 
 .player-circle.active {
-  border-color: var(--active-border-color);
   background-color: var(--active-bg-color);
   box-shadow: var(--shadow-dp4);
+  border-width: 4px;
+}
+
+.player-circle.active .player-name {
+  color: var(--primary-text-color);
 }
 
 .player-circle.active:hover {
