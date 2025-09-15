@@ -52,7 +52,7 @@ export class AppComponent implements OnInit, OnDestroy {
   availableColors = ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6f42c1'];
   private longPressTimer: any;
 
-  private readonly localStorageKey = 'lineChangePlayers'; // Changed key
+  private readonly localStorageKey = 'lineChangePlayers';
 
   constructor(private cdr: ChangeDetectorRef) { }
 
@@ -250,36 +250,35 @@ export class AppComponent implements OnInit, OnDestroy {
   togglePlayer(player: Player): void {
     if (this.gameTimeElapsed >= MAX_TIME_MS_MMSS && !player.isActive) return;
 
-    const wasActive = player.isActive;
-    player.isActive = !player.isActive;
     const now = Date.now();
+    const playerIndex = this.players.findIndex(p => p.id === player.id);
+    if (playerIndex === -1) return;
+
+    const updatedPlayer = { ...this.players[playerIndex] };
+    const wasActive = updatedPlayer.isActive;
+    updatedPlayer.isActive = !updatedPlayer.isActive;
 
     if (this.isGameRunning) {
-      if (wasActive && !player.isActive) {
-        if (player.currentSessionStartTime !== null) {
-          const elapsed = now - player.currentSessionStartTime;
-          player.totalGameTime += elapsed;
-          if (player.totalGameTime > MAX_TIME_MS_MMSS) {
-            player.totalGameTime = MAX_TIME_MS_MMSS;
-          }
-          player.currentSessionStartTime = null;
+      if (wasActive && !updatedPlayer.isActive) {
+        if (updatedPlayer.currentSessionStartTime !== null) {
+          const elapsed = now - updatedPlayer.currentSessionStartTime;
+          updatedPlayer.totalGameTime = Math.min(updatedPlayer.totalGameTime + elapsed, MAX_TIME_MS_MMSS);
+          updatedPlayer.currentSessionStartTime = null;
         }
-      } else if (!wasActive && player.isActive) {
-        player.currentSessionStartTime = now;
+      } else if (!wasActive && updatedPlayer.isActive) {
+        updatedPlayer.currentSessionStartTime = now;
       }
     } else {
-      if (!player.isActive) {
-        player.currentSessionStartTime = null;
+      if (!updatedPlayer.isActive) {
+        updatedPlayer.currentSessionStartTime = null;
       }
     }
 
-    let currentSessionElapsedForDisplay = 0;
-    if (player.isActive && player.currentSessionStartTime && this.isGameRunning) {
-      currentSessionElapsedForDisplay = now - player.currentSessionStartTime;
-    }
-    player.currentSessionDisplayTime$.next(currentSessionElapsedForDisplay);
-    player.totalGameDisplayTime$.next(player.totalGameTime + (this.isGameRunning ? currentSessionElapsedForDisplay : 0));
+    const newPlayers = [...this.players];
+    newPlayers[playerIndex] = updatedPlayer;
+    this.players = newPlayers;
 
+    this.updatePlayerDisplay();
     this.cdr.detectChanges();
   }
 
