@@ -24,7 +24,7 @@
 
     <div class="score-area away-score">
       <span class="score-label">AWAY</span>
-       <div class="score-display">
+      <div class="score-display">
         <button class="score-control" (click)="decrementAwayScore()" aria-label="Decrease Away Score">-</button>
         <span class="score-value">{{ awayScore }}</span>
         <button class="score-control" (click)="incrementAwayScore()" aria-label="Increase Away Score">+</button>
@@ -40,10 +40,10 @@
   </div>
 
   <div class="player-container">
-    <div class="player-circle"
-         *ngFor="let player of sortedPlayers; trackBy: trackById"
-         [class.active]="player.isActive"
-         (click)="togglePlayer(player)">
+    <div class="player-circle" *ngFor="let player of sortedPlayers; trackBy: trackById"
+      [style.border-color]="player.isActive ? player.highlightColor : null" [class.active]="player.isActive"
+      (mousedown)="onPress(player)" (mouseup)="onRelease(player)" (touchstart)="onPress(player)"
+      (touchend)="onRelease(player)" (mouseleave)="onRelease(player)">
 
       <div class="player-name">{{ player.name }}</div>
       <div class="timer current-timer">
@@ -52,6 +52,19 @@
       <div class="timer total-timer">
         ({{ player.totalGameDisplayTime$ | async | formatTimePipe }})
       </div>
+    </div>
+  </div>
+
+  <!-- Color Picker Modal -->
+  <div class="color-picker-overlay" *ngIf="isColorPickerVisible" (click)="closeColorPicker()">
+    <div class="color-picker-modal" (click)="$event.stopPropagation()">
+      <h3>Choose a color for {{ playerForColorChange?.name }}</h3>
+      <div class="color-options">
+        <div *ngFor="let color of availableColors" class="color-swatch" [style.background-color]="color"
+          (click)="selectColor(color)">
+        </div>
+      </div>
+      <button (click)="closeColorPicker()">Close</button>
     </div>
   </div>
 </div>

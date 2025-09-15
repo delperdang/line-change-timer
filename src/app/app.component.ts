@@ -8,6 +8,7 @@ interface Player {
   id: number;
   name: string;
   isActive: boolean;
+  highlightColor: string;
   currentSessionStartTime: number | null;
   totalGameTime: number;
   currentSessionDisplayTime$: BehaviorSubject<number>;
@@ -46,15 +47,30 @@ export class AppComponent implements OnInit, OnDestroy {
   private animationFrameId: number | null = null;
   private lastFrameTime: number = 0;
 
-  private readonly localStorageKey = 'lineChangePlayerNames';
+  isColorPickerVisible = false;
+  playerForColorChange: Player | null = null;
+  availableColors = ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6f42c1'];
+  private longPressTimer: any;
 
-  constructor(private cdr: ChangeDetectorRef) {}
-  
+  private readonly localStorageKey = 'lineChangePlayers'; // Changed key
+
+  constructor(private cdr: ChangeDetectorRef) { }
+
   ngOnInit(): void {
-    const savedNames = localStorage.getItem(this.localStorageKey);
-    if (savedNames) {
-      this.playerNamesInput = savedNames;
-      this.processPlayerNames(savedNames);
+    const savedPlayers = localStorage.getItem(this.localStorageKey);
+    if (savedPlayers) {
+      try {
+        const data = JSON.parse(savedPlayers);
+        if (Array.isArray(data) && typeof data[0] === 'object') {
+          this.players = data.map(p => ({ ...p, currentSessionDisplayTime$: new BehaviorSubject(0), totalGameDisplayTime$: new BehaviorSubject(p.totalGameTime) }));
+        } else {
+          this.initializePlayers(savedPlayers.split(','));
+        }
+      } catch (e) {
+        this.initializePlayers(savedPlayers.split(','));
+      }
+      this.playersLoaded = true;
+      this.playerNamesInput = this.players.map(p => p.name).join(', ');
     }
   }
 
@@ -86,7 +102,6 @@ export class AppComponent implements OnInit, OnDestroy {
   processPlayerNames(namesString: string): void {
     const namesArray = namesString.split(',').map(name => name.trim()).filter(name => name.length > 0);
     if (namesArray.length > 0) {
-      localStorage.setItem(this.localStorageKey, namesArray.join(','));
       this.initializePlayers(namesArray);
       this.playersLoaded = true;
     } else {
@@ -99,11 +114,16 @@ export class AppComponent implements OnInit, OnDestroy {
   initializePlayers(names: string[]): void {
     this.resetGameInternal(true);
     this.players = names.map((name, index) => ({
-      id: index, name: name, isActive: false, currentSessionStartTime: null,
+      id: index,
+      name: name,
+      isActive: false,
+      highlightColor: this.availableColors[0],
+      currentSessionStartTime: null,
       totalGameTime: 0,
       currentSessionDisplayTime$: new BehaviorSubject<number>(0),
       totalGameDisplayTime$: new BehaviorSubject<number>(0)
     }));
+    this.savePlayers();
   }
 
   clearPlayers(): void {
@@ -128,15 +148,14 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isGameRunning = false;
 
     this.players.forEach(player => {
-      player.isActive = false; 
-      player.currentSessionStartTime = null; 
+      player.isActive = false;
+      player.currentSessionStartTime = null;
       player.totalGameTime = 0;
-      player.currentSessionDisplayTime$?.next(0); 
+      player.currentSessionDisplayTime$?.next(0);
       player.totalGameDisplayTime$?.next(0);
       player._calculatedTotalTime = 0;
     });
 
-    // Force a final UI update for the reset state
     this.updatePlayerDisplay();
     this.cdr.detectChanges();
   }
@@ -150,7 +169,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   startGame(): void {
     if (this.isGameRunning || this.gameTimeElapsed >= MAX_TIME_MS_MMSS) return;
-    
+
     this.isGameRunning = true;
     const now = Date.now();
     this.players.forEach(player => {
@@ -165,7 +184,7 @@ export class AppComponent implements OnInit, OnDestroy {
   pauseGame(): void {
     if (!this.isGameRunning) return;
 
-    this.isGameRunning = false; 
+    this.isGameRunning = false;
     this.stopGameLoop();
 
     const now = Date.now();
@@ -179,6 +198,46 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.updatePlayerDisplay();
     this.cdr.detectChanges();
+  }
+
+  onPress(player: Player): void {
+    this.longPressTimer = setTimeout(() => {
+      this.openColorPicker(player);
+      this.longPressTimer = null;
+    }, 500);
+  }
+
+  onRelease(player: Player): void {
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer);
+      this.togglePlayer(player);
+    }
+  }
+
+  openColorPicker(player: Player): void {
+    this.playerForColorChange = player;
+    this.isColorPickerVisible = true;
+  }
+
+  selectColor(color: string): void {
+    if (this.playerForColorChange) {
+      this.playerForColorChange.highlightColor = color;
+      this.savePlayers();
+    }
+    this.closeColorPicker();
+  }
+
+  closeColorPicker(): void {
+    this.isColorPickerVisible = false;
+    this.playerForColorChange = null;
+  }
+
+  savePlayers(): void {
+    const playersToSave = this.players.map(p => {
+      const { currentSessionDisplayTime$, totalGameDisplayTime$, ...rest } = p;
+      return rest;
+    });
+    localStorage.setItem(this.localStorageKey, JSON.stringify(playersToSave));
   }
 
   togglePlayer(player: Player): void {
@@ -204,24 +263,24 @@ export class AppComponent implements OnInit, OnDestroy {
     } else {
       if (!player.isActive) {
         player.currentSessionStartTime = null;
-     }
+      }
     }
 
     let currentSessionElapsedForDisplay = 0;
     if (player.isActive && player.currentSessionStartTime && this.isGameRunning) {
-        currentSessionElapsedForDisplay = now - player.currentSessionStartTime;
+      currentSessionElapsedForDisplay = now - player.currentSessionStartTime;
     }
     player.currentSessionDisplayTime$.next(currentSessionElapsedForDisplay);
     player.totalGameDisplayTime$.next(player.totalGameTime + (this.isGameRunning ? currentSessionElapsedForDisplay : 0));
-    
+
     this.cdr.detectChanges();
   }
 
   trackById(index: number, player: Player): number { return player.id; }
 
   private startGameLoop(): void {
-    if (this.animationFrameId) return; // Already running
-    
+    if (this.animationFrameId) return;
+
     this.lastFrameTime = performance.now();
     this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
   }
@@ -242,10 +301,8 @@ export class AppComponent implements OnInit, OnDestroy {
     const deltaTime = timestamp - this.lastFrameTime;
     this.lastFrameTime = timestamp;
 
-    // Update main game timer
     this.gameTimeElapsed = Math.min(this.gameTimeElapsed + deltaTime, MAX_TIME_MS_MMSS);
 
-    // Update player displays
     this.updatePlayerDisplay();
 
     if (this.gameTimeElapsed >= MAX_TIME_MS_MMSS) {
