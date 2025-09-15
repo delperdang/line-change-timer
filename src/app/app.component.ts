@@ -43,6 +43,9 @@ export class AppComponent implements OnInit, OnDestroy {
   homeScore = 0;
   awayScore = 0;
 
+  private gameTimerStartTime: number = 0;
+  private gameTimerOffset: number = 0;
+
   private playerTimerIntervalSubscription: Subscription | null = null;
   private gameTimerSubscription: Subscription | null = null;
 
@@ -77,13 +80,15 @@ export class AppComponent implements OnInit, OnDestroy {
 
   startGameTimer(): void {
     if (this.gameTimerSubscription || this.gameTimeElapsed >= MAX_TIME_MS_MMSS) return;
+    
     this.isGameTimerRunning = true;
+    this.gameTimerStartTime = Date.now();
 
-    this.gameTimerSubscription = interval(1000).subscribe(() => {
+    this.gameTimerSubscription = interval(500).subscribe(() => {
       if (this.isGameTimerRunning) {
-        if (this.gameTimeElapsed < MAX_TIME_MS_MMSS) {
-          this.gameTimeElapsed += 1000;
-        }
+        const now = Date.now();
+        const elapsed = now - this.gameTimerStartTime;
+        this.gameTimeElapsed = this.gameTimerOffset + elapsed;
 
         if (this.gameTimeElapsed >= MAX_TIME_MS_MMSS) {
           this.gameTimeElapsed = MAX_TIME_MS_MMSS;
@@ -118,6 +123,7 @@ export class AppComponent implements OnInit, OnDestroy {
   pauseGameTimer(): void {
     if (!this.isGameTimerRunning && !this.gameTimerSubscription) return;
     console.log('Pausing game timer');
+    this.gameTimerOffset = this.gameTimeElapsed;
     this.stopGameTimer();
     this.cdr.detectChanges();
   }
@@ -135,6 +141,7 @@ export class AppComponent implements OnInit, OnDestroy {
     console.log('Resetting game timer');
     this.stopGameTimer();
     this.gameTimeElapsed = 0;
+    this.gameTimerOffset = 0;
     this.cdr.detectChanges();
   }
 
