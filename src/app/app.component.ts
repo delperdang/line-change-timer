@@ -136,7 +136,6 @@ export class AppComponent implements OnInit, OnDestroy {
       player._calculatedTotalTime = 0;
     });
 
-    // Force a final UI update for the reset state
     this.updatePlayerDisplay();
     this.cdr.detectChanges();
   }
@@ -220,7 +219,7 @@ export class AppComponent implements OnInit, OnDestroy {
   trackById(index: number, player: Player): number { return player.id; }
 
   private startGameLoop(): void {
-    if (this.animationFrameId) return; // Already running
+    if (this.animationFrameId) return;
     
     this.lastFrameTime = performance.now();
     this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
@@ -242,10 +241,8 @@ export class AppComponent implements OnInit, OnDestroy {
     const deltaTime = timestamp - this.lastFrameTime;
     this.lastFrameTime = timestamp;
 
-    // Update main game timer
     this.gameTimeElapsed = Math.min(this.gameTimeElapsed + deltaTime, MAX_TIME_MS_MMSS);
 
-    // Update player displays
     this.updatePlayerDisplay();
 
     if (this.gameTimeElapsed >= MAX_TIME_MS_MMSS) {
