@@ -207,6 +207,13 @@ export class AppComponent implements OnInit, OnDestroy {
     }, 500);
   }
 
+  cancelPress(): void {
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
+  }
+
   onRelease(player: Player): void {
     if (this.longPressTimer) {
       clearTimeout(this.longPressTimer);

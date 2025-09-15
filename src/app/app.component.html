@@ -43,7 +43,7 @@
     <div class="player-circle" *ngFor="let player of sortedPlayers; trackBy: trackById"
       [style.border-color]="player.isActive ? player.highlightColor : null" [class.active]="player.isActive"
       (mousedown)="onPress(player)" (mouseup)="onRelease(player)" (touchstart)="onPress(player)"
-      (touchend)="onRelease(player)" (mouseleave)="onRelease(player)">
+      (touchend)="onRelease(player)" (mouseleave)="cancelPress()">
 
       <div class="player-name">{{ player.name }}</div>
       <div class="timer current-timer">
