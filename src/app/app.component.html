@@ -55,7 +55,6 @@
     </div>
   </div>
 
-  <!-- Color Picker Modal -->
   <div class="color-picker-overlay" *ngIf="isColorPickerVisible" (click)="closeColorPicker()">
     <div class="color-picker-modal" (click)="$event.stopPropagation()">
       <h3>Choose a color for {{ playerForColorChange?.name }}</h3>
