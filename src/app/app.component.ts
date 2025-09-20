@@ -195,6 +195,10 @@ export class AppComponent implements OnInit, OnDestroy {
     player.isActive = !player.isActive;
     const now = Date.now();
 
+    if (!wasActive && player.isActive) {
+      player.highlightColor = this.highlightColor;
+    }
+
     if (this.isGameRunning) {
       if (wasActive && !player.isActive) {
         if (player.currentSessionStartTime !== null) {
@@ -207,7 +211,6 @@ export class AppComponent implements OnInit, OnDestroy {
         }
       } else if (!wasActive && player.isActive) {
         player.currentSessionStartTime = now;
-        player.highlightColor = this.highlightColor;
       }
     } else {
       if (!player.isActive) {
