@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BehaviorSubject } from 'rxjs';
 import { FormatTimePipe } from './format-time.pipe';
+import { TimeService } from './time.service';
 
 interface Player {
   id: number;
@@ -55,7 +56,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private readonly localStorageKey = 'lineChangePlayerNames';
 
-  constructor(private cdr: ChangeDetectorRef) { }
+  constructor(private cdr: ChangeDetectorRef, private timeService: TimeService) { }
 
   ngOnInit(): void {
     const savedNames = localStorage.getItem(this.localStorageKey);
@@ -70,7 +71,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   get sortedPlayers(): Player[] {
-    const now = Date.now();
+    const now = this.timeService.now();
     this.players.forEach(p => {
       let currentSessionTime = 0;
       if (p.isActive && p.currentSessionStartTime) {
@@ -159,7 +160,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (this.isGameRunning || this.gameTimeElapsed >= MAX_TIME_MS_MMSS) return;
 
     this.isGameRunning = true;
-    const now = Date.now();
+    const now = this.timeService.now();
     this.players.forEach(player => {
       if (player.isActive && player.currentSessionStartTime === null) {
         player.currentSessionStartTime = now;
@@ -175,7 +176,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isGameRunning = false;
     this.stopGameLoop();
 
-    const now = Date.now();
+    const now = this.timeService.now();
     this.players.forEach(player => {
       if (player.isActive && player.currentSessionStartTime !== null) {
         const elapsed = now - player.currentSessionStartTime;
@@ -193,7 +194,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     const wasActive = player.isActive;
     player.isActive = !player.isActive;
-    const now = Date.now();
+    const now = this.timeService.now();
 
     if (!wasActive && player.isActive) {
       player.highlightColor = this.highlightColor;
@@ -267,7 +268,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private updatePlayerDisplay(): void {
-    const now = Date.now();
+    const now = this.timeService.now();
     this.players.forEach(player => {
       let currentSessionElapsed = 0;
       if (player.isActive && player.currentSessionStartTime !== null) {
@@ -282,7 +283,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isGameRunning = false;
     this.stopGameLoop();
 
-    const capTime = Date.now();
+    const capTime = this.timeService.now();
     this.players.forEach(player => {
       if (player.isActive && player.currentSessionStartTime !== null) {
         const elapsed = capTime - player.currentSessionStartTime;
